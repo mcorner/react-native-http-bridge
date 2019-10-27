@@ -6,8 +6,10 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.facebook.react.bridge.ReactApplicationContext;
 
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +19,7 @@ import java.util.Random;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
+import java.io.InputStream;
 
 import android.content.res.AssetFileDescriptor;
 import android.support.annotation.Nullable;
@@ -70,7 +73,7 @@ public class Server extends NanoHTTPD {
     }
 
     public void respond(String requestId, Response resp, ReadableMap opts) {
-      if (opts.hasKey("headers")){
+      if (opts != null && opts.hasKey("headers")){
         Log.d(TAG, "has headers");
 
         ReadableMap headers = opts.getMap("headers");
@@ -92,7 +95,7 @@ public class Server extends NanoHTTPD {
       respond(requestId, resp, opts);
     }
 
-    public void respondFile(String requestId, int code, String type, String filePath, ReadableMap opts) {
+    public void respondFile(ReactApplicationContext reactContext, String requestId, int code, String type, String filePath, ReadableMap opts) {
       Log.d(TAG, "respondFile");
       Response resp;
       try {
@@ -104,7 +107,7 @@ public class Server extends NanoHTTPD {
         if (opts.hasKey("assets") && opts.getBoolean("assets")){
           Log.d(TAG, "asset");
 
-          AssetFileDescriptor fd = getAssets().openFd(filePath);
+          AssetFileDescriptor fd = reactContext.getAssets().openFd(filePath);
           reader = fd.createInputStream();
           size = fd.getLength();
         } else{
@@ -125,7 +128,7 @@ public class Server extends NanoHTTPD {
         // Shouldn't happen, make sure you pass valid paths
         ex.printStackTrace();
         resp = newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "ERROR");
-        respond(requestId, resp, new ReadableMap());
+        respond(requestId, resp, null);
       }
     }
 
