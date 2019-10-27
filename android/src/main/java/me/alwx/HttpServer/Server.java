@@ -111,7 +111,7 @@ public class Server extends NanoHTTPD {
           Log.d(TAG, "not asset");
 
           final Path path = Paths.get(filePath);
-          reader = Files.newInputStream(path),
+          reader = Files.newInputStream(path);
           size = Files.size(path);
         }
         resp = newFixedLengthResponse(
