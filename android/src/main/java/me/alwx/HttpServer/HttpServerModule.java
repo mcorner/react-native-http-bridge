@@ -5,6 +5,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
 
 import java.io.IOException;
 
@@ -46,9 +47,16 @@ public class HttpServerModule extends ReactContextBaseJavaModule implements Life
     }
 
     @ReactMethod
-    public void respond(String requestId, int code, String type, String body) {
+    public void respond(String requestId, int code, String type, String body, ReadableMap opts) {
         if (server != null) {
-            server.respond(requestId, code, type, body);
+            server.respondFixed(requestId, code, type, body, opts);
+        }
+    }
+
+    @ReactMethod
+    public void respondFile(String requestId, int code, String type, String fileName, ReadableMap opts) {
+        if (server != null) {
+            server.respondFile(requestId, code, type, fileName, opts);
         }
     }
 

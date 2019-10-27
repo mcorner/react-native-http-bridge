@@ -14,6 +14,11 @@ import java.util.Set;
 import java.util.HashMap;
 import java.util.Random;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+
+import android.content.res.AssetFileDescriptor;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
@@ -52,6 +57,7 @@ public class Server extends NanoHTTPD {
 
         while (responses.get(requestId) == null) {
             try {
+                Log.d(TAG, "sleep");
                 Thread.sleep(10);
             } catch (Exception e) {
                 Log.d(TAG, "Exception while waiting: " + e);
@@ -59,11 +65,68 @@ public class Server extends NanoHTTPD {
         }
         Response response = responses.get(requestId);
         responses.remove(requestId);
+
         return response;
     }
 
-    public void respond(String requestId, int code, String type, String body) {
-        responses.put(requestId, newFixedLengthResponse(Status.lookup(code), type, body));
+    public void respond(String requestId, Response resp, ReadableMap opts) {
+      if (opts.hasKey("headers")){
+        Log.d(TAG, "has headers");
+
+        ReadableMap headers = opts.getMap("headers");
+        ReadableMapKeySetIterator iterator = headers.keySetIterator();
+
+        while (iterator.hasNextKey()) {
+          String key = iterator.nextKey();
+          Log.d(TAG, "has header: " + key);
+
+          resp.addHeader(key, headers.getString(key));
+        }
+      }
+      responses.put(requestId, resp);
+    }
+
+    public void respondFixed(String requestId, int code, String type, String body, ReadableMap opts){
+      Log.d(TAG, "respondFixed");
+      Response resp = newFixedLengthResponse(Status.lookup(code), type, body);
+      respond(requestId, resp, opts);
+    }
+
+    public void respondFile(String requestId, int code, String type, String filePath, ReadableMap opts)) {
+      Log.d(TAG, "respondFile");
+      Response resp;
+      try {
+        InputStream reader;
+        Long size;
+
+        Log.d(TAG, filePath);
+
+        if (opts.hasKey("assets") && opts.getBoolean("assets")){
+          Log.d(TAG, "asset");
+
+          AssetFileDescriptor fd = getAssets().openFd(filePath);
+          reader = fd.createInputStream();
+          size = fd.getLength();
+        } else{
+          Log.d(TAG, "not asset");
+
+          final Path path = Paths.get(filePath);
+          reader = Files.newInputStream(path),
+          size = Files.size(path);
+        }
+        resp = newFixedLengthResponse(
+          Status.lookup(code),
+          type,
+          reader,
+          size
+        );
+        respond(requestId, resp, opts);
+      } catch (final Exception ex) {
+        // Shouldn't happen, make sure you pass valid paths
+        ex.printStackTrace();
+        resp = newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "ERROR");
+        respond(requestId, resp, new ReadableMap());
+      }
     }
 
     private WritableMap fillRequestMap(IHTTPSession session, String requestId) throws Exception {
@@ -72,7 +135,7 @@ public class Server extends NanoHTTPD {
         request.putString("url", session.getUri());
         request.putString("type", method.name());
         request.putString("requestId", requestId);
-        
+
         Map<String, String> files = new HashMap<>();
         session.parseBody(files);
         if (files.size() > 0) {

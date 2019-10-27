@@ -22,7 +22,15 @@ module.exports = {
         DeviceEventEmitter.removeListener('httpServerResponseReceived');
     },
 
-    respond: function (requestId, code, type, body) {
-        Server.respond(requestId, code, type, body);
+    respond: function (requestId, code, type, body, opts={}) {
+        // opts.headers hash
+        Server.respond(requestId, code, type, body, opts);
+    },
+
+    respondFile: function (requestId, code, type, filePath, opts={}) {
+        // filePath is relative to the documents path
+        // opt.headers hash
+        Server.respondFile(requestId, code, type, filePath, opts);
     }
+
 }
