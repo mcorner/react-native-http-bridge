@@ -92,7 +92,7 @@ public class Server extends NanoHTTPD {
       respond(requestId, resp, opts);
     }
 
-    public void respondFile(String requestId, int code, String type, String filePath, ReadableMap opts)) {
+    public void respondFile(String requestId, int code, String type, String filePath, ReadableMap opts) {
       Log.d(TAG, "respondFile");
       Response resp;
       try {
