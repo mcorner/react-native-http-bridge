@@ -94,8 +94,10 @@ public class Server extends NanoHTTPD {
 
       PendingResponse pending = responses.get(requestId);
       if (pending != null){
-        pending.response = resp;
-        pending.notify();
+        synchronized(pending) {
+          pending.response = resp;
+          pending.notify();
+        }
       }
     }
 
