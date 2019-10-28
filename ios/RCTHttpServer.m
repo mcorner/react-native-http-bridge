@@ -5,6 +5,7 @@
 
 #import "WGCDWebServer.h"
 #import "WGCDWebServerDataResponse.h"
+#import "WGCDWebServerFileResponse.h"
 #import "WGCDWebServerDataRequest.h"
 #import "WGCDWebServerPrivate.h"
 #include <stdlib.h>
@@ -26,7 +27,7 @@ RCT_EXPORT_MODULE();
 
 - (void)initResponseReceivedFor:(WGCDWebServer *)server forType:(NSString*)type {
     [server addDefaultHandlerForMethod:type requestClass:[WGCDWebServerDataRequest class] processBlock:^WGCDWebServerResponse *(WGCDWebServerRequest* request) {
-        
+
         long long milliseconds = (long long)([[NSDate date] timeIntervalSince1970] * 1000.0);
         int r = arc4random_uniform(1000000);
         NSString *requestId = [NSString stringWithFormat:@"%lld:%d", milliseconds, r];
@@ -52,12 +53,12 @@ RCT_EXPORT_MODULE();
                                                                 @"type": type,
                                                                 @"url": request.URL.relativeString}];
         }
-        
+
         while ([_requestResponses objectForKey:requestId] == NULL) {
             [NSThread sleepForTimeInterval:0.01f];
         }
-    
-        WGCDWebServerDataResponse* response = [_requestResponses objectForKey:requestId];
+
+        WGCDWebServerResponse* response = [_requestResponses objectForKey:requestId];
         [_requestResponses removeObjectForKey:requestId];
         return response;
     }];
@@ -68,15 +69,15 @@ RCT_EXPORT_METHOD(start:(NSInteger) port
 {
     RCTLogInfo(@"Running HTTP bridge server: %ld", port);
     _requestResponses = [[NSMutableDictionary alloc] init];
-    
+
     dispatch_sync(dispatch_get_main_queue(), ^{
         _webServer = [[WGCDWebServer alloc] init];
-        
+
         [self initResponseReceivedFor:_webServer forType:@"POST"];
         [self initResponseReceivedFor:_webServer forType:@"PUT"];
         [self initResponseReceivedFor:_webServer forType:@"GET"];
         [self initResponseReceivedFor:_webServer forType:@"DELETE"];
-        
+
         [_webServer startWithPort:port bonjourName:serviceName];
     });
 }
@@ -84,7 +85,7 @@ RCT_EXPORT_METHOD(start:(NSInteger) port
 RCT_EXPORT_METHOD(stop)
 {
     RCTLogInfo(@"Stopping HTTP bridge server");
-    
+
     if (_webServer != nil) {
         [_webServer stop];
         [_webServer removeAllHandlers];
@@ -92,16 +93,47 @@ RCT_EXPORT_METHOD(stop)
     }
 }
 
+- (void)respondInternalWithRequestId:(NSString *) requestId response:(WGCDWebServerResponse*)response opts:(NSDictionary*) opts {
+
+  NSDictionary *headers = [opts objectForKey:@"headers"];
+  if (headers){
+    for (id key in headers){
+      [response setValue:[headers objectForKey:key] forAdditionalHeader:key];
+    }
+  }
+
+  [_requestResponses setObject:response forKey:requestId];
+}
+
 RCT_EXPORT_METHOD(respond: (NSString *) requestId
                   code: (NSInteger) code
                   type: (NSString *) type
-                  body: (NSString *) body)
+                  body: (NSString *) body
+                  opts: (NSDictionary *) opts)
 {
     NSData* data = [body dataUsingEncoding:NSUTF8StringEncoding];
-    WGCDWebServerDataResponse* requestResponse = [[WGCDWebServerDataResponse alloc] initWithData:data contentType:type];
+    WGCDWebServerResponse* requestResponse = [[WGCDWebServerDataResponse alloc] initWithData:data contentType:type];
     requestResponse.statusCode = code;
-    
-    [_requestResponses setObject:requestResponse forKey:requestId];
+
+    [self respondInternalWithRequestId:requestId response:requestResponse opts:opts];
+}
+
+RCT_EXPORT_METHOD(respondFile: (NSString *) requestId
+                  code: (NSInteger) code
+                  type: (NSString *) type
+                  filePath: (NSString *) filePath
+                  opts: (NSDictionary *) opts)
+{
+  WGCDWebServerResponse* requestResponse = [WGCDWebServerFileResponse responseWithFile:filePath];
+
+  if (requestResponse){
+    requestResponse.statusCode = code;
+  } else{
+    // didn't find file
+    NSData* data = [@"ERROR" dataUsingEncoding:NSUTF8StringEncoding];
+    requestResponse = [[WGCDWebServerDataResponse alloc] initWithData:data contentType:@"text/plain"];
+  }
+  [self respondInternalWithRequestId:requestId response:requestResponse opts:opts];
 }
 
 @end

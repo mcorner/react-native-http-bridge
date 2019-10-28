@@ -27,10 +27,10 @@ module.exports = {
         Server.respond(requestId, code, type, body, opts);
     },
 
-    respondFile: function (requestId, code, type, filePath, opts={}) {
+    respondFile: function (requestId, code, filePath, opts={}) {
         // filePath is relative to the documents path
         // opt.headers hash
-        Server.respondFile(requestId, code, type, filePath, opts);
+        Server.respondFile(requestId, code, filePath, opts);
     }
 
 }

@@ -95,7 +95,7 @@ public class Server extends NanoHTTPD {
       respond(requestId, resp, opts);
     }
 
-    public void respondFile(ReactApplicationContext reactContext, String requestId, int code, String type, String filePath, ReadableMap opts) {
+    public void respondFile(ReactApplicationContext reactContext, String requestId, String type, String filePath, ReadableMap opts) {
       Log.d(TAG, "respondFile");
       Response resp;
       try {
@@ -119,7 +119,7 @@ public class Server extends NanoHTTPD {
         }
         resp = newFixedLengthResponse(
           Status.lookup(code),
-          type,
+          getMimeTypeForFile(filePath),
           reader,
           size
         );
