@@ -62,7 +62,6 @@ RCT_EXPORT_METHOD(start:(NSInteger) port
                   serviceName:(NSString *) serviceName)
 {
     RCTLogInfo(@"Running HTTP bridge server: %ld", port);
-    _requestResponses = [[NSMutableDictionary alloc] init];
 
     dispatch_sync(dispatch_get_main_queue(), ^{
         _webServer = [[WGCDWebServer alloc] init];
@@ -102,7 +101,7 @@ RCT_EXPORT_METHOD(stop)
       [_completionBlocks removeObjectForKey:requestId];
   }
 
-  completionBlock(requestResponse);
+  completionBlock(response);
 }
 
 RCT_EXPORT_METHOD(respond: (NSString *) requestId
