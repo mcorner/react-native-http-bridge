@@ -120,7 +120,6 @@ RCT_EXPORT_METHOD(respond: (NSString *) requestId
 
 RCT_EXPORT_METHOD(respondFile: (NSString *) requestId
                   code: (NSInteger) code
-                  type: (NSString *) type
                   filePath: (NSString *) filePath
                   opts: (NSDictionary *) opts)
 {
