@@ -11,6 +11,7 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.bridge.ReactApplicationContext;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
@@ -25,17 +26,21 @@ import android.content.res.AssetFileDescriptor;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+class PendingResponse {
+  public Response response;
+}
+
 public class Server extends NanoHTTPD {
     private static final String TAG = "HttpServer";
     private static final String SERVER_EVENT_ID = "httpServerResponseReceived";
 
     private ReactContext reactContext;
-    private Map<String, Response> responses;
+    private Map<String, PendingResponse> responses;
 
     public Server(ReactContext context, int port) {
         super(port);
         reactContext = context;
-        responses = new HashMap<>();
+        responses = Collections.synchronizedMap(new HashMap<String, PendingResponse>());
 
         Log.d(TAG, "Server started");
     }
@@ -56,47 +61,50 @@ public class Server extends NanoHTTPD {
             );
         }
 
+        PendingResponse pending = new PendingResponse();
+        responses.put(requestId, pending);
+
         this.sendEvent(reactContext, SERVER_EVENT_ID, request);
 
-        while (responses.get(requestId) == null) {
-            try {
-                Log.d(TAG, "sleep");
-                Thread.sleep(10);
-            } catch (Exception e) {
-                Log.d(TAG, "Exception while waiting: " + e);
+        synchronized(pending) {
+          try{
+            while (pending.response == null){
+              pending.wait();
             }
+            return pending.response;
+          } catch(InterruptedException e){
+            Log.e(TAG, "Waiting for response interrupted");
+          }
+          responses.remove(requestId);
         }
-        Response response = responses.get(requestId);
-        responses.remove(requestId);
 
-        return response;
+        return null;
     }
 
     public void respond(String requestId, Response resp, ReadableMap opts) {
       if (opts != null && opts.hasKey("headers")){
-        Log.d(TAG, "has headers");
-
         ReadableMap headers = opts.getMap("headers");
         ReadableMapKeySetIterator iterator = headers.keySetIterator();
 
         while (iterator.hasNextKey()) {
           String key = iterator.nextKey();
-          Log.d(TAG, "has header: " + key);
-
           resp.addHeader(key, headers.getString(key));
         }
       }
-      responses.put(requestId, resp);
+
+      PendingResponse pending = responses.get(requestId);
+      if (pending != null){
+        pending.response = resp;
+        pending.notify();
+      }
     }
 
     public void respondFixed(String requestId, int code, String type, String body, ReadableMap opts){
-      Log.d(TAG, "respondFixed");
       Response resp = newFixedLengthResponse(Status.lookup(code), type, body);
       respond(requestId, resp, opts);
     }
 
-    public void respondFile(ReactApplicationContext reactContext, String requestId, String type, String filePath, ReadableMap opts) {
-      Log.d(TAG, "respondFile");
+    public void respondFile(ReactApplicationContext reactContext, String requestId, int code, String filePath, ReadableMap opts) {
       Response resp;
       try {
         InputStream reader;
