@@ -32,11 +32,11 @@ public class HttpServerModule extends ReactContextBaseJavaModule implements Life
     }
 
     @ReactMethod
-    public void start(int port, String serviceName) {
+    public void start(int port, String serviceName, ReadableMap opts) {
         Log.d(MODULE_NAME, "Initializing server...");
         this.port = port;
-
-        startServer();
+        
+        startServer(opts);
     }
 
     @ReactMethod
@@ -75,13 +75,13 @@ public class HttpServerModule extends ReactContextBaseJavaModule implements Life
         stopServer();
     }
 
-    private void startServer() {
+    private void startServer(ReadableMap opts) {
         if (this.port == 0) {
             return;
         }
 
         if (server == null) {
-            server = new Server(reactContext, port);
+            server = new Server(reactContext, port, opts);
         }
         try {
             server.start();
