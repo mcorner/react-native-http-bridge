@@ -30,8 +30,8 @@ RCT_EXPORT_MODULE();
   [server addDefaultHandlerForMethod:type requestClass:[WGCDWebServerDataRequest class] asyncProcessBlock:^(WGCDWebServerRequest* request, WGCDWebServerCompletionBlock completionBlock) {
 
     if (_serverOpts && [_serverOpts objectForKey:@"assetMode"] && [[_serverOpts objectForKey:@"assetMode"] isEqualToString: @"serve"]){
-        
-      NSString* filePath = [NSString stringWithFormat:@"%@/%@/%@", [[NSBundle mainBundle] bundlePath], @"assets", request.URL.relativeString];
+
+      NSString* filePath = [NSString stringWithFormat:@"%@/%@%@", [[NSBundle mainBundle] bundlePath], @"assets", request.URL.relativeString];
 
       RCTLogInfo(@"Looking for asset at %@", filePath);
 
