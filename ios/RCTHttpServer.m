@@ -34,10 +34,9 @@ RCT_EXPORT_MODULE();
       NSString* filePath = [NSString stringWithFormat:@"%@/%@%@", [[NSBundle mainBundle] bundlePath], @"assets", request.URL.relativeString];
 
       RCTLogInfo(@"Looking for asset at %@", filePath);
+      if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]){
+        WGCDWebServerResponse* requestResponse = [WGCDWebServerFileResponse responseWithFile:filePath];
 
-      WGCDWebServerResponse* requestResponse = [WGCDWebServerFileResponse responseWithFile:filePath];
-
-      if (requestResponse){
         RCTLogInfo(@"Found asset at %@", filePath);
         requestResponse.statusCode = 200;
         [self setHeadersforResponse:requestResponse opts:_serverOpts];
@@ -148,9 +147,9 @@ code: (NSInteger) code
 filePath: (NSString *) filePath
 opts: (NSDictionary *) opts)
 {
-  WGCDWebServerResponse* requestResponse = [WGCDWebServerFileResponse responseWithFile:filePath];
-
-  if (requestResponse){
+  WGCDWebServerResponse* requestResponse;
+  if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]){
+    requestResponse = [WGCDWebServerFileResponse responseWithFile:filePath];
     requestResponse.statusCode = code;
   } else{
     // didn't find file
