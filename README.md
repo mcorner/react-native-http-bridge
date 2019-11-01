@@ -27,6 +27,11 @@ HttpBridge.start(1234, 'cdn', {assetMode:'serve', headers:{"Cache-Control": 'pub
 
 The assetMode "serve" allows the embedded server to send back files from the MainBundle on ios or assets on Android.  If it doesn't find the file, the callback gets fired.  The headers for the server will be applied when serving assets like this (but not elsewhere).
 
+Assets served directly must be in these places:
+* android/app/src/main/assets/
+* ios/assets
+
+
 The callback can also set headers and send back codes that forward etc.
 
 You can also choose to serve files through the callback.  If you set assets: true, it will look in assets (Android only).  Requires RNFS to look for files etc.
