@@ -52,7 +52,7 @@ public class Server extends NanoHTTPD {
   public Response serve(IHTTPSession session) {
     Log.d(TAG, "Request received!");
 
-    if (this.serverOpts.getString("assetMode").equals("serve")){
+    if (this.serverOpts.hasKey("assetMode") && this.serverOpts.getString("assetMode").equals("serve")){
       try{
         String filePath = session.getUri().substring(1); // strip initial /
         AssetFileDescriptor fd = reactContext.getAssets().openFd(filePath);
